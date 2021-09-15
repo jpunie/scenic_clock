@@ -24,12 +24,14 @@ defmodule Scenic.Clock.Digital do
 
   # --------------------------------------------------------
   @doc false
-  def verify(nil), do: {:ok, nil}
-  def verify(_), do: :invalid_data
+  @impl Scenic.Component
+  def validate(nil), do: {:ok, nil}
+  def validate(_), do: :invalid_data
 
   # --------------------------------------------------------
   @doc false
-  def init(_, opts) do
+  @impl Scenic.Scene
+  def init(scene, _params, opts) do
     styles = opts[:styles]
 
     # theme is passed in as an inherited style
@@ -69,25 +71,48 @@ defmodule Scenic.Clock.Digital do
     {microseconds, _} = Time.utc_now().microsecond
     Process.send_after(self(), :start_clock, 1001 - trunc(microseconds / 1000))
 
-    {:ok, state, push: graph}
+    scene = scene
+    |> assign(state: state)
+    |> push_graph(graph)
+
+    {:ok, scene}
   end
 
   # --------------------------------------------------------
   @doc false
   # should be shortly after the actual one-second mark
-  def handle_info(:start_clock, state) do
+  @impl GenServer
+  def handle_info(:start_clock, %{assigns: %{state: state}} = scene) do
     # start the timer on a one-second interval
     {:ok, timer} = :timer.send_interval(1000, :tick_tock)
 
     # update the clock
-    {state, graph} = update_time(state)
-    {:noreply, %{state | timer: timer}, push: graph}
+    scene = case update_time(state) do
+      {state, nil} ->
+        scene
+        |> assign(state: %{state | timer: timer})
+      {state, graph} ->
+        scene
+        |> assign(state: %{state | timer: timer})
+        |> push_graph(graph)
+     end
+
+    {:noreply, scene}
   end
 
   # --------------------------------------------------------
-  def handle_info(:tick_tock, state) do
-    {state, graph} = update_time(state)
-    {:noreply, state, push: graph}
+  def handle_info(:tick_tock, %{assigns: %{state: state}} = scene) do
+    scene = case update_time(state) do
+      {state, nil} ->
+        scene
+        |> assign(state: state)
+      {state, graph} ->
+        scene
+        |> assign(state: state)
+        |> push_graph(graph)
+    end
+
+    {:noreply, scene}
   end
 
   # --------------------------------------------------------

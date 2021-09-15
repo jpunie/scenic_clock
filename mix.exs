@@ -1,7 +1,7 @@
 defmodule Scenic.Clock.MixProject do
   use Mix.Project
 
-  @version "0.10.0"
+  @version "0.11.0"
   @github "https://github.com/boydm/scenic_clock"
 
   def project do
@@ -36,7 +36,7 @@ defmodule Scenic.Clock.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:scenic, "~> 0.10"},
+      {:scenic, github: "boydm/scenic", ref: "v0.11"},
       {:ex_doc, ">= 0.0.0", only: [:dev, :docs]}
     ]
   end
